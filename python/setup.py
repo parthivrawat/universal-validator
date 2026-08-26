@@ -11,6 +11,7 @@ setup(
     name="universal-validator",
     version="1.0.0",
     author="Parthiv Rawat",
+    license="MIT",
     description="Comprehensive data validation library for API, database, and form contexts",
     long_description=long_description,
     long_description_content_type="text/markdown",

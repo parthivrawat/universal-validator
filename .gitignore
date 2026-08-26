@@ -1,1 +1,28 @@
-/target
+# Build artifacts
+**/target/
+**/dist/
+**/build/
+**/node_modules/
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info/
+
+# Dependency lock files
+**/Cargo.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+poetry.lock
+Pipfile.lock
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+

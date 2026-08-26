@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	v "github.com/parthivrawat/universal-validator"
+	v "github.com/parthivrawat/universal-validator/go"
 )
 
 func exampleBasicValidation() {

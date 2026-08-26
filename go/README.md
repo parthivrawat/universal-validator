@@ -15,7 +15,7 @@ A comprehensive data validation library for Go that works across API, database, 
 ## Installation
 
 ```bash
-go get github.com/parthivrawat/universal-validator
+go get github.com/parthivrawat/universal-validator/go
 ```
 
 ## Quick Start
@@ -25,7 +25,7 @@ package main
 
 import (
     "fmt"
-    v "github.com/parthivrawat/universal-validator"
+    v "github.com/parthivrawat/universal-validator/go"
 )
 
 func main() {
@@ -55,7 +55,7 @@ func main() {
 ### String Validation
 
 ```go
-import v "github.com/parthivrawat/universal-validator"
+import v "github.com/parthivrawat/universal-validator/go"
 
 // Basic string
 validator := v.String()
@@ -162,7 +162,7 @@ userValidator := v.Map(v.MapOptions{
 ### Schema Validation
 
 ```go
-import v "github.com/parthivrawat/universal-validator"
+import v "github.com/parthivrawat/universal-validator/go"
 
 schema := v.NewSchema(map[string]v.Validator{
     "username": v.String(v.StringOptions{MinLength: v.IntPtr(3), MaxLength: v.IntPtr(20)}),

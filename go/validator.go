@@ -5,7 +5,7 @@
 //
 // Example:
 //
-//	import "github.com/parthivrawat/universal-validator"
+//	import "github.com/parthivrawat/universal-validator/go"
 //
 //	schema := validator.NewSchema(map[string]validator.Validator{
 //	    "email": validator.Email(),

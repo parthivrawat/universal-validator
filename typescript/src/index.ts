@@ -44,7 +44,7 @@ export class ValidationResult {
 /**
  * Base validator class
  */
-export abstract class Validator<T = any> {
+export abstract class Validator {
   protected customValidators: Array<(value: any) => string | null> = [];
 
   constructor(
@@ -108,11 +108,11 @@ export abstract class Validator<T = any> {
 /**
  * String validator
  */
-export class StringValidator extends Validator<string> {
+export class StringValidator extends Validator {
   constructor(
     private readonly minLength?: number,
     private readonly maxLength?: number,
-    private readonly pattern?: RegExp,
+    protected readonly pattern?: RegExp,
     private readonly choices?: string[],
     required: boolean = true,
     nullable: boolean = false
@@ -173,7 +173,7 @@ export class StringValidator extends Validator<string> {
 /**
  * Number validator (for integers and floats)
  */
-export class NumberValidator extends Validator<number> {
+export class NumberValidator extends Validator {
   constructor(
     private readonly minValue?: number,
     private readonly maxValue?: number,
@@ -226,7 +226,7 @@ export class NumberValidator extends Validator<number> {
 /**
  * Boolean validator
  */
-export class BooleanValidator extends Validator<boolean> {
+export class BooleanValidator extends Validator {
   protected validateType(value: any, field: string): ValidationError | null {
     if (typeof value !== 'boolean') {
       return new ValidationError(field, `Expected boolean, got ${typeof value}`, value);
@@ -234,7 +234,7 @@ export class BooleanValidator extends Validator<boolean> {
     return null;
   }
 
-  protected validateConstraints(value: boolean, field: string): ValidationError[] {
+  protected validateConstraints(_value: boolean, _field: string): ValidationError[] {
     return [];
   }
 }
@@ -282,7 +282,7 @@ export class UrlValidator extends StringValidator {
 /**
  * Array validator
  */
-export class ArrayValidator extends Validator<any[]> {
+export class ArrayValidator extends Validator {
   constructor(
     private readonly itemValidator?: Validator,
     private readonly minLength?: number,
@@ -337,7 +337,7 @@ export class ArrayValidator extends Validator<any[]> {
 /**
  * Object validator
  */
-export class ObjectValidator extends Validator<Record<string, any>> {
+export class ObjectValidator extends Validator {
   constructor(
     private readonly schema?: Record<string, Validator>,
     required: boolean = true,
