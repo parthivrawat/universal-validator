@@ -1,5 +1,5 @@
 {
-  "name": "@parthivrawat/universal-validator",
+  "name": "universal-validator-lib",
   "version": "1.0.0",
   "description": "Comprehensive data validation library for API, database, and form contexts",
   "main": "dist/index.js",
