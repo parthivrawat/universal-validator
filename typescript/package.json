@@ -1,5 +1,5 @@
 {
-  "name": "universal-validator",
+  "name": "@parthivrawat/universal-validator",
   "version": "1.0.0",
   "description": "Comprehensive data validation library for API, database, and form contexts",
   "main": "dist/index.js",
@@ -41,7 +41,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/parthivrawat/universal-validator"
+    "url": "git+https://github.com/parthivrawat/universal-validator.git"
   },
   "homepage": "https://github.com/parthivrawat/universal-validator#readme",
   "bugs": {
@@ -60,5 +60,8 @@
   },
   "engines": {
     "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
