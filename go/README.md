@@ -4,18 +4,21 @@ A comprehensive data validation library for Go that works across API, database, 
 
 ## Features
 
-- ✅ **Rich Validator Types**: String, Int, Float, Bool, Email, URL, Slice, Map
-- ✅ **Schema-Based Validation**: Define complex data structures
-- ✅ **Custom Validators**: Add your own validation logic
-- ✅ **Nested Validation**: Validate nested objects and slices
-- ✅ **Clear Error Messages**: Detailed error reporting with field paths
-- ✅ **Zero Dependencies**: No external dependencies required
-- ✅ **Production Ready**: Comprehensive test coverage
+- **Rich Validator Types**: String, Int, Float, Bool, Email, URL, Slice, Map, UUID, Date, DateTime, Numeric, NotEmpty, Enum, OneOf, Regex
+- **Schema-Based Validation**: Define complex data structures
+- **Functional Options**: One `Option` type shared across all validators
+- **Context-Aware Custom Validators**: Receive `context.Context` and return `error`
+- **Nested Validation**: Validate nested objects and slices
+- **Clear Error Messages**: Detailed error reporting with field paths
+- **Error Aggregation**: `ValidationErrors` implementing `error` and `Unwrap() []error`
+- **Immutable Validators**: Safe to share across goroutines
+- **Zero Dependencies**: No external dependencies required
+- **Production Ready**: Comprehensive test coverage
 
 ## Installation
 
 ```bash
-go get github.com/parthivrawat/universal-validator/go
+go get github.com/parthivrawat/universal-validator/go/v2
 ```
 
 ## Quick Start
@@ -24,15 +27,17 @@ go get github.com/parthivrawat/universal-validator/go
 package main
 
 import (
+    "context"
     "fmt"
-    v "github.com/parthivrawat/universal-validator/go"
+
+    v "github.com/parthivrawat/universal-validator/go/v2"
 )
 
 func main() {
     schema := v.NewSchema(map[string]v.Validator{
-        "email": v.Email(),
-        "age":   v.Int(v.IntOptions{MinValue: v.IntPtr(0), MaxValue: v.IntPtr(120)}),
-        "username": v.String(v.StringOptions{MinLength: v.IntPtr(3), MaxLength: v.IntPtr(20)}),
+        "email":    v.Email(),
+        "age":      v.Int(v.MinValue(0), v.MaxValue(120)),
+        "username": v.String(v.MinLength(3), v.MaxLength(20)),
     })
 
     data := map[string]interface{}{
@@ -41,7 +46,7 @@ func main() {
         "username": "john_doe",
     }
 
-    result := schema.Validate(data)
+    result := schema.Validate(context.Background(), data)
     if !result.Valid {
         for _, err := range result.Errors {
             fmt.Printf("%s: %s\n", err.Field, err.Message)
@@ -50,276 +55,276 @@ func main() {
 }
 ```
 
+## Functional Options
+
+All validator constructors accept `...Option`. The same `Option` type is used for every validator; options that do not apply to a particular validator are ignored. Options are applied at construction time; validators are immutable and safe to share across goroutines.
+
+```go
+Optional()                  // required=false (required is the default)
+Nullable()                  // allow null/nil values
+MinLength(int)              // string min length
+MaxLength(int)              // string max length
+Pattern(*regexp.Regexp)     // full regex match for strings
+Choices(...string)          // allowed string values
+MinValue(int)               // integer min value
+MaxValue(int)               // integer max value
+MinFloat(float64)           // float min value
+MaxFloat(float64)           // float max value
+Items(Validator)            // item validator for slices
+Fields(map[string]Validator) // field validators for maps/objects
+Strict()                    // unknown-key detection for maps/schemata
+FailFast()                  // stop at the first error for maps/schemata
+WithCustom(CustomValidator) // attach a custom validator
+Sensitive()                 // redact the offending value from errors
+```
+
 ## Usage Examples
 
 ### String Validation
 
 ```go
-import v "github.com/parthivrawat/universal-validator/go"
+import v "github.com/parthivrawat/universal-validator/go/v2"
 
 // Basic string
 validator := v.String()
 
 // String with length constraints
-usernameValidator := v.String(v.StringOptions{
-    MinLength: v.IntPtr(3),
-    MaxLength: v.IntPtr(20),
-})
+usernameValidator := v.String(v.MinLength(3), v.MaxLength(20))
 
 // String with pattern
-phoneValidator := v.String(v.StringOptions{
-    Pattern: regexp.MustCompile(`^\d{3}-\d{4}$`),
-})
+phoneValidator := v.String(v.Pattern(regexp.MustCompile(`^\d{3}-\d{4}$`)))
 
 // String with choices
-themeValidator := v.String(v.StringOptions{
-    Choices: []string{"light", "dark"},
-})
+themeValidator := v.String(v.Choices("light", "dark"))
 
 // Optional string
-bioValidator := v.String(v.StringOptions{Required: false})
+bioValidator := v.String(v.Optional())
 ```
 
 ### Integer and Float Validation
 
 ```go
 // Integer with range
-ageValidator := v.Int(v.IntOptions{
-    MinValue: v.IntPtr(0),
-    MaxValue: v.IntPtr(120),
-})
+ageValidator := v.Int(v.MinValue(0), v.MaxValue(120))
 
 // Float with range
-priceValidator := v.Float(v.FloatOptions{
-    MinValue: v.Float64Ptr(0.0),
-    MaxValue: v.Float64Ptr(9999.99),
-})
+priceValidator := v.Float(v.MinFloat(0.0), v.MaxFloat(9999.99))
 
 // Optional integer
-scoreValidator := v.Int(v.IntOptions{Required: false})
+scoreValidator := v.Int(v.Optional())
 ```
 
-### Boolean Validation
+### Boolean, Email, URL
 
 ```go
 termsValidator := v.Bool()
-newsletterValidator := v.Bool(v.BoolOptions{Required: false})
-```
-
-### Email and URL Validation
-
-```go
+newsletterValidator := v.Bool(v.Optional())
 emailValidator := v.Email()
 urlValidator := v.URL()
 ```
 
-### Slice Validation
+### Slice and Map Validation
 
 ```go
-// Simple slice
-tagsValidator := v.Slice()
-
 // Slice with item validation
-numbersValidator := v.Slice(v.SliceOptions{
-    ItemValidator: v.Int(),
-})
+numbersValidator := v.Slice(v.Items(v.Int()))
 
 // Slice with length constraints
-itemsValidator := v.Slice(v.SliceOptions{
-    ItemValidator: v.String(),
-    MinLength:     v.IntPtr(1),
-    MaxLength:     v.IntPtr(10),
-})
+itemsValidator := v.Slice(
+    v.Items(v.String()),
+    v.MinLength(1),
+    v.MaxLength(10),
+)
+
+// Map with schema
+addressValidator := v.Map(v.Fields(map[string]v.Validator{
+    "street": v.String(),
+    "city":   v.String(),
+    "zip":    v.Regex(regexp.MustCompile(`^\d{5}$`)),
+}))
 ```
 
-### Map Validation
+### New Validators
 
 ```go
-// Map with schema
-addressValidator := v.Map(v.MapOptions{
-    Schema: map[string]v.Validator{
-        "street": v.String(),
-        "city":   v.String(),
-        "zip":    v.String(v.StringOptions{Pattern: regexp.MustCompile(`^\d{5}$`)}),
-    },
-})
+// UUID
+code := v.UUID()
 
-// Nested map
-userValidator := v.Map(v.MapOptions{
-    Schema: map[string]v.Validator{
-        "name":  v.String(),
-        "email": v.Email(),
-        "address": v.Map(v.MapOptions{
-            Schema: map[string]v.Validator{
-                "street": v.String(),
-                "city":   v.String(),
-            },
-        }),
-    },
-})
+// Date and datetime (pattern only; no calendar normalization)
+dateValidator := v.Date()
+datetimeValidator := v.DateTime()
+
+// Numeric string (e.g. "-12.5", "1e3")
+numericValidator := v.Numeric()
+
+// Non-empty string, array, or object
+notEmpty := v.NotEmpty()
+
+// Enum with deep-equality
+enumValidator := v.Enum([]interface{}{"a", 1, true})
+
+// OneOf: value must satisfy at least one branch
+oneOf := v.OneOf([]v.Validator{v.String(v.MinLength(3)), v.Int(v.MinValue(10))})
+
+// Regex: string validator with a caller-supplied pattern
+regexValidator := v.Regex(regexp.MustCompile(`^[A-Z]{3}$`))
 ```
 
 ### Schema Validation
 
 ```go
-import v "github.com/parthivrawat/universal-validator/go"
-
 schema := v.NewSchema(map[string]v.Validator{
-    "username": v.String(v.StringOptions{MinLength: v.IntPtr(3), MaxLength: v.IntPtr(20)}),
+    "username": v.String(v.MinLength(3), v.MaxLength(20)),
     "email":    v.Email(),
-    "age":      v.Int(v.IntOptions{MinValue: v.IntPtr(13), Required: false}),
-    "bio":      v.String(v.StringOptions{MaxLength: v.IntPtr(500), Required: false}),
-    "tags":     v.Slice(v.SliceOptions{ItemValidator: v.String()}),
-    "settings": v.Map(v.MapOptions{
-        Schema: map[string]v.Validator{
-            "theme":         v.String(v.StringOptions{Choices: []string{"light", "dark"}}),
-            "notifications": v.Bool(),
-        },
-    }),
+    "age":      v.Int(v.MinValue(13), v.Optional()),
+    "bio":      v.String(v.MaxLength(500), v.Optional()),
+    "tags":     v.Slice(v.Items(v.String())),
+    "settings": v.Map(v.Fields(map[string]v.Validator{
+        "theme":         v.String(v.Choices("light", "dark")),
+        "notifications": v.Bool(),
+    })),
 })
-
-data := map[string]interface{}{
-    "username": "john_doe",
-    "email":    "john@example.com",
-    "age":      25,
-    "tags":     []interface{}{"go", "programming"},
-    "settings": map[string]interface{}{
-        "theme":         "dark",
-        "notifications": true,
-    },
-}
-
-result := schema.Validate(data)
-
-if result.Valid {
-    fmt.Println("✅ Data is valid!")
-} else {
-    fmt.Println("❌ Validation errors:")
-    for _, err := range result.Errors {
-        fmt.Printf("  %s: %s\n", err.Field, err.Message)
-    }
-}
 ```
 
-### Custom Validators
+### Strict Mode (Unknown-Key Detection)
 
 ```go
-isEven := func(value interface{}) *string {
-    if num, ok := value.(int); ok {
-        if num%2 != 0 {
-            msg := "Value must be even"
-            return &msg
-        }
+schema := v.NewSchema(map[string]v.Validator{
+    "name": v.String(),
+}, v.Strict())
+
+// Or toggle after construction
+schema.SetStrict(true)
+```
+
+For nested maps:
+
+```go
+userSchema := v.NewSchema(map[string]v.Validator{
+    "address": v.Map(
+        v.Strict(),
+        v.Fields(map[string]v.Validator{
+            "city": v.String(),
+        }),
+    ),
+})
+```
+
+### Fail-Fast Mode
+
+```go
+schema := v.NewSchema(map[string]v.Validator{
+    "name": v.String(),
+    "age":  v.Int(v.MinValue(0)),
+}, v.FailFast())
+
+// Or toggle after construction
+schema.SetFailFast(true)
+```
+
+Fail-fast also works on `Map` and `Slice`:
+
+```go
+userValidator := v.Map(
+    v.FailFast(),
+    v.Fields(map[string]v.Validator{
+        "name": v.String(),
+        "age":  v.Int(),
+    }),
+)
+```
+
+### Context-Aware Custom Validators
+
+```go
+isEven := func(ctx context.Context, value interface{}) error {
+    if num, ok := value.(int); ok && num%2 != 0 {
+        return fmt.Errorf("Value must be even")
     }
     return nil
 }
 
-validator := v.Int().Custom(isEven)
-
-result := validator.Validate(4, "number")
-fmt.Println(result.Valid) // true
-
-result = validator.Validate(3, "number")
-fmt.Println(result.Valid) // false
+validator := v.Int(v.WithCustom(isEven))
 ```
 
-## Real-World Examples
+### Error Handling
 
-### User Registration
-
-```go
-schema := v.NewSchema(map[string]v.Validator{
-    "username": v.String(v.StringOptions{MinLength: v.IntPtr(3), MaxLength: v.IntPtr(20)}),
-    "email":    v.Email(),
-    "password": v.String(v.StringOptions{MinLength: v.IntPtr(8)}),
-    "age":      v.Int(v.IntOptions{MinValue: v.IntPtr(13), Required: false}),
-    "terms_accepted": v.Bool(),
-})
-```
-
-### API Request Validation
+`Schema.ValidateOrError` returns a `ValidationErrors` value (or `nil` on success). `ValidationErrors` joins `field: message` with newlines and supports `errors.Unwrap`:
 
 ```go
-schema := v.NewSchema(map[string]v.Validator{
-    "method": v.String(v.StringOptions{Choices: []string{"GET", "POST", "PUT", "DELETE"}}),
-    "url":    v.URL(),
-    "headers": v.Map(v.MapOptions{Required: false}),
-    "body":    v.Map(v.MapOptions{Required: false}),
-    "timeout": v.Float(v.FloatOptions{MinValue: v.Float64Ptr(0), Required: false}),
-})
-```
-
-### Configuration Validation
-
-```go
-schema := v.NewSchema(map[string]v.Validator{
-    "database": v.Map(v.MapOptions{
-        Schema: map[string]v.Validator{
-            "host":     v.String(),
-            "port":     v.Int(v.IntOptions{MinValue: v.IntPtr(1), MaxValue: v.IntPtr(65535)}),
-            "username": v.String(),
-            "password": v.String(),
-            "ssl":      v.Bool(),
-        },
-    }),
-    "cache": v.Map(v.MapOptions{
-        Schema: map[string]v.Validator{
-            "enabled":  v.Bool(),
-            "ttl":      v.Int(v.IntOptions{MinValue: v.IntPtr(0)}),
-            "max_size": v.Int(v.IntOptions{MinValue: v.IntPtr(1)}),
-        },
-    }),
-    "features": v.Slice(v.SliceOptions{ItemValidator: v.String()}),
-})
-```
-
-## Error Handling
-
-```go
-schema := v.NewSchema(map[string]v.Validator{
-    "email": v.Email(),
-})
-
-// Option 1: Check result
-result := schema.Validate(map[string]interface{}{"email": "invalid"})
-if !result.Valid {
-    for _, err := range result.Errors {
-        fmt.Printf("%s: %s\n", err.Field, err.Message)
+if err := schema.ValidateOrError(context.Background(), data); err != nil {
+    var ve validator.ValidationErrors
+    if errors.As(err, &ve) {
+        for _, e := range ve {
+            fmt.Printf("%s: %s\n", e.Field, e.Message)
+        }
     }
 }
-
-// Option 2: Panic on error
-defer func() {
-    if r := recover(); r != nil {
-        fmt.Printf("Validation failed: %v\n", r)
-    }
-}()
-schema.ValidateOrPanic(map[string]interface{}{"email": "invalid"})
 ```
 
-## API Reference
+### Error Codes
 
-### Validators
+Each `ValidationError` carries a machine-readable `Code`:
 
-- `String(opts...)` - String validator
-- `Int(opts...)` - Integer validator
-- `Float(opts...)` - Float validator
-- `Bool(opts...)` - Boolean validator
-- `Email(opts...)` - Email validator
-- `URL(opts...)` - URL validator
-- `Slice(opts...)` - Slice validator
-- `Map(opts...)` - Map validator
+- `validator.ErrCodeRequired`
+- `validator.ErrCodeUnknownField`
+- `validator.ErrCodeType`
+- `validator.ErrCodeMinLength`
+- `validator.ErrCodeMaxLength`
+- `validator.ErrCodeMinValue`
+- `validator.ErrCodeMaxValue`
+- `validator.ErrCodePattern`
+- `validator.ErrCodeChoices`
+- `validator.ErrCodeEmail`
+- `validator.ErrCodeURL`
+- `validator.ErrCodeUUID`
+- `validator.ErrCodeDate`
+- `validator.ErrCodeDateTime`
+- `validator.ErrCodeNumeric`
+- `validator.ErrCodeNotEmpty`
+- `validator.ErrCodeEnum`
+- `validator.ErrCodeOneOf`
+- `validator.ErrCodeCustom`
 
-### Schema
+## Error Path Format
 
-- `NewSchema(validators)` - Create a schema
-- `schema.Validate(data)` - Validate data and return ValidationResult
-- `schema.ValidateOrPanic(data)` - Validate data and panic if invalid
+Nested field paths use `.` (e.g. `user.address.city`) and array indices use brackets (e.g. `tags[0]`, `users[1].email`). Top-level type errors on a schema use `root`.
 
-### Helper Functions
+## No Coercion / No Mutation
 
-- `IntPtr(i)` - Create pointer to int
-- `Float64Ptr(f)` - Create pointer to float64
+Validation is read-only. It never trims strings, folds case, parses strings into numbers, or otherwise mutates the input. Normalize data before validating if your domain requires it.
+
+## Security
+
+### Sensitive fields
+
+Mark a validator with `Sensitive()` when it handles secrets (passwords, tokens, API keys). A sensitive validator redacts the offending value from every error it produces: `ValidationError.Value` is `nil` and any place the value would be interpolated into the message renders as the literal `***`:
+
+```go
+v.String(v.Sensitive(), v.Choices("a", "b")).Validate(ctx, "hunter2", "token")
+// => token: Value must be one of a, b, got '***'   (Value == nil)
+
+v.Email(v.Sensitive()).Validate(ctx, "p@ssw0rd", "secret")
+// => secret: Invalid email address: ***
+```
+
+Messages that do not embed the input — length and value bounds (`got 3`), `Field is required`, `Unknown field` — are unchanged. The flag is **not** inherited by nested validators (`Items`, `Fields`, schema fields); set it on each validator that needs it.
+
+### Pattern input length cap
+
+Pattern checks are skipped for input strings longer than `MaxPatternInputLength` (10,000 bytes) and immediately produce the normal `pattern` error (rewritten to the friendly `email`/`url`/`uuid`/`date`/`datetime`/`numeric` messages where applicable). Go's regexp engine (RE2) is linear-time, so this cap exists for conformance parity with sibling implementations that use backtracking engines — it is not required for safety in Go.
+
+### Trusted patterns only
+
+Patterns supplied via `Pattern`/`Regex` are executed by the platform regex engine. While Go's RE2 cannot backtrack exponentially, the same schema can be catastrophic in runtimes that use backtracking engines — patterns must come from trusted sources, never from end users.
+
+### Email/URL are sanity checks only
+
+The built-in email pattern is a permissive sanity check: it does not enforce RFC 5321 length limits and cannot prove an address is deliverable. The URL pattern performs no IDN or port validation and accepts inputs such as `http://x.`. Do not rely on either for security decisions.
+
+## Concurrency
+
+Validators are immutable after construction and may be shared freely across goroutines. `SetStrict`/`SetFailFast` on `Schema` mutate the schema and are not safe for concurrent use with `Validate`.
 
 ## Testing
 
@@ -329,10 +334,6 @@ go test -v
 
 # Run tests with coverage
 go test -v -cover
-
-# Generate coverage report
-go test -coverprofile=coverage.out
-go tool cover -html=coverage.out
 ```
 
 ## License
