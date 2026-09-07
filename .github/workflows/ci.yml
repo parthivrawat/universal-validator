@@ -69,8 +69,11 @@ jobs:
         with:
           node-version: '20'
       - name: install
-        run: npm install --prefix typescript
+        working-directory: typescript
+        run: npm install
       - name: typecheck
-        run: npx tsc --noEmit -p typescript/tsconfig.json
+        working-directory: typescript
+        run: npx tsc --noEmit
       - name: test
-        run: npx vitest run --root typescript
+        working-directory: typescript
+        run: npx vitest run
