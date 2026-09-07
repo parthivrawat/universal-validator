@@ -5,7 +5,7 @@ This example demonstrates how to use the universal-validator library
 for various validation scenarios.
 """
 
-from universal_validator import Schema, validators, ValidationError
+from universal_validator import Schema, ValidationErrors, validators
 
 
 def example_basic_validation():
@@ -307,7 +307,7 @@ def example_error_handling():
     print("\nOption 2: Raise ValidationError")
     try:
         schema.validate_or_raise({'email': 'invalid', 'age': -1})
-    except ValidationError as e:
+    except ValidationErrors as e:
         print(f"Caught exception: {e}")
 
 
