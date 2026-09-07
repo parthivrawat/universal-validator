@@ -1,0 +1,473 @@
+[
+  {
+    "name": "valid_simple",
+    "schema": {
+      "fields": {
+        "name": { "type": "string", "minLength": 3, "maxLength": 20 },
+        "age": { "type": "integer", "minValue": 0, "maxValue": 120 }
+      }
+    },
+    "input": { "name": "john_doe", "age": 25 },
+    "expected": []
+  },
+  {
+    "name": "missing_required",
+    "schema": {
+      "fields": {
+        "name": { "type": "string" },
+        "age": { "type": "integer" }
+      }
+    },
+    "input": {},
+    "expected": [
+      { "field": "name", "code": "required", "message": "Field is required" },
+      { "field": "age", "code": "required", "message": "Field is required" }
+    ]
+  },
+  {
+    "name": "optional_field_absent",
+    "schema": {
+      "fields": {
+        "name": { "type": "string" },
+        "bio": { "type": "string", "required": false }
+      }
+    },
+    "input": { "name": "john" },
+    "expected": []
+  },
+  {
+    "name": "nullable_null",
+    "schema": {
+      "fields": {
+        "bio": { "type": "string", "nullable": true }
+      }
+    },
+    "input": { "bio": null },
+    "expected": []
+  },
+  {
+    "name": "null_not_nullable",
+    "schema": {
+      "fields": {
+        "bio": { "type": "string" }
+      }
+    },
+    "input": { "bio": null },
+    "expected": [
+      { "field": "bio", "code": "required", "message": "Field is required" }
+    ]
+  },
+  {
+    "name": "type_string_got_int",
+    "schema": { "fields": { "name": { "type": "string" } } },
+    "input": { "name": 42 },
+    "expected": [
+      { "field": "name", "code": "type", "message": "Expected string, got integer" }
+    ]
+  },
+  {
+    "name": "type_int_got_string",
+    "schema": { "fields": { "age": { "type": "integer" } } },
+    "input": { "age": "abc" },
+    "expected": [
+      { "field": "age", "code": "type", "message": "Expected integer, got string" }
+    ]
+  },
+  {
+    "name": "type_int_got_float",
+    "schema": { "fields": { "age": { "type": "integer" } } },
+    "input": { "age": 1.5 },
+    "expected": [
+      { "field": "age", "code": "type", "message": "Expected integer, got number" }
+    ]
+  },
+  {
+    "name": "type_number_accepts_int",
+    "schema": { "fields": { "score": { "type": "number", "minValue": 0 } } },
+    "input": { "score": 5 },
+    "expected": []
+  },
+  {
+    "name": "type_bool_got_string",
+    "schema": { "fields": { "active": { "type": "boolean" } } },
+    "input": { "active": "yes" },
+    "expected": [
+      { "field": "active", "code": "type", "message": "Expected boolean, got string" }
+    ]
+  },
+  {
+    "name": "type_array_got_object",
+    "schema": { "fields": { "tags": { "type": "array" } } },
+    "input": { "tags": { "a": 1 } },
+    "expected": [
+      { "field": "tags", "code": "type", "message": "Expected array, got object" }
+    ]
+  },
+  {
+    "name": "type_object_got_array",
+    "schema": { "fields": { "user": { "type": "object" } } },
+    "input": { "user": [1, 2] },
+    "expected": [
+      { "field": "user", "code": "type", "message": "Expected object, got array" }
+    ]
+  },
+  {
+    "name": "string_min_max_length",
+    "schema": {
+      "fields": {
+        "short": { "type": "string", "minLength": 5 },
+        "long": { "type": "string", "maxLength": 3 }
+      }
+    },
+    "input": { "short": "abc", "long": "abcdef" },
+    "expected": [
+      { "field": "short", "code": "min_length", "message": "String length must be at least 5, got 3" },
+      { "field": "long", "code": "max_length", "message": "String length must be at most 3, got 6" }
+    ]
+  },
+  {
+    "name": "int_min_max_value",
+    "schema": {
+      "fields": {
+        "low": { "type": "integer", "minValue": 0 },
+        "high": { "type": "integer", "maxValue": 120 }
+      }
+    },
+    "input": { "low": -1, "high": 150 },
+    "expected": [
+      { "field": "low", "code": "min_value", "message": "Value must be at least 0, got -1" },
+      { "field": "high", "code": "max_value", "message": "Value must be at most 120, got 150" }
+    ]
+  },
+  {
+    "name": "pattern_fullmatch",
+    "schema": {
+      "fields": {
+        "code": { "type": "string", "pattern": "\\d+" }
+      }
+    },
+    "input": { "code": "12a" },
+    "expected": [
+      { "field": "code", "code": "pattern", "message": "String does not match pattern \\d+" }
+    ]
+  },
+  {
+    "name": "choices_mismatch",
+    "schema": {
+      "fields": {
+        "color": { "type": "string", "choices": ["red", "green"] }
+      }
+    },
+    "input": { "color": "blue" },
+    "expected": [
+      { "field": "color", "code": "choices", "message": "Value must be one of red, green, got 'blue'" }
+    ]
+  },
+  {
+    "name": "email_valid_and_invalid",
+    "schema": {
+      "fields": {
+        "good": { "type": "email" },
+        "bad": { "type": "email" }
+      }
+    },
+    "input": { "good": "user@example.com", "bad": "not-an-email" },
+    "expected": [
+      { "field": "bad", "code": "email", "message": "Invalid email address: not-an-email" }
+    ]
+  },
+  {
+    "name": "url_invalid",
+    "schema": {
+      "fields": {
+        "site": { "type": "url" }
+      }
+    },
+    "input": { "site": "not-a-url" },
+    "expected": [
+      { "field": "site", "code": "url", "message": "Invalid URL: not-a-url" }
+    ]
+  },
+  {
+    "name": "array_items_nested_path",
+    "schema": {
+      "fields": {
+        "tags": { "type": "array", "items": { "type": "string", "minLength": 2 } }
+      }
+    },
+    "input": { "tags": ["ok", "x"] },
+    "expected": [
+      { "field": "tags[1]", "code": "min_length", "message": "String length must be at least 2, got 1" }
+    ]
+  },
+  {
+    "name": "array_min_length",
+    "schema": {
+      "fields": {
+        "tags": { "type": "array", "minLength": 2 }
+      }
+    },
+    "input": { "tags": ["only"] },
+    "expected": [
+      { "field": "tags", "code": "min_length", "message": "Array length must be at least 2, got 1" }
+    ]
+  },
+  {
+    "name": "nested_object_path",
+    "schema": {
+      "fields": {
+        "user": {
+          "type": "object",
+          "fields": {
+            "age": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "input": { "user": { "age": "abc" } },
+    "expected": [
+      { "field": "user.age", "code": "type", "message": "Expected integer, got string" }
+    ]
+  },
+  {
+    "name": "nested_object_missing_required",
+    "schema": {
+      "fields": {
+        "user": {
+          "type": "object",
+          "fields": {
+            "name": { "type": "string" }
+          }
+        }
+      }
+    },
+    "input": { "user": {} },
+    "expected": [
+      { "field": "user.name", "code": "required", "message": "Field is required" }
+    ]
+  },
+  {
+    "name": "strict_top_level",
+    "schema": {
+      "fields": {
+        "name": { "type": "string" }
+      },
+      "strict": true
+    },
+    "input": { "name": "john", "extra": 1 },
+    "expected": [
+      { "field": "extra", "code": "unknown_field", "message": "Unknown field" }
+    ]
+  },
+  {
+    "name": "strict_nested",
+    "schema": {
+      "fields": {
+        "user": {
+          "type": "object",
+          "fields": { "name": { "type": "string" } },
+          "strict": true
+        }
+      }
+    },
+    "input": { "user": { "name": "john", "extra": true } },
+    "expected": [
+      { "field": "user.extra", "code": "unknown_field", "message": "Unknown field" }
+    ]
+  },
+  {
+    "name": "non_strict_ignores_extra",
+    "schema": {
+      "fields": {
+        "name": { "type": "string" }
+      }
+    },
+    "input": { "name": "john", "extra": 1 },
+    "expected": []
+  },
+  {
+    "name": "deeply_nested_array_of_objects",
+    "schema": {
+      "fields": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "fields": {
+              "email": { "type": "email" }
+            }
+          }
+        }
+      }
+    },
+    "input": { "users": [{ "email": "a@b.com" }, { "email": "bad" }] },
+    "expected": [
+      { "field": "users[1].email", "code": "email", "message": "Invalid email address: bad" }
+    ]
+  },
+  {
+    "name": "uuid_valid_and_invalid",
+    "schema": {
+      "fields": {
+        "good": { "type": "uuid" },
+        "bad": { "type": "uuid" }
+      }
+    },
+    "input": {
+      "good": "550e8400-e29b-41d4-a716-446655440000",
+      "bad": "not-a-uuid"
+    },
+    "expected": [
+      { "field": "bad", "code": "uuid", "message": "Invalid UUID: not-a-uuid" }
+    ]
+  },
+  {
+    "name": "uuid_non_string",
+    "schema": { "fields": { "id": { "type": "uuid" } } },
+    "input": { "id": 42 },
+    "expected": [
+      { "field": "id", "code": "type", "message": "Expected string, got integer" }
+    ]
+  },
+  {
+    "name": "date_valid_and_invalid",
+    "schema": {
+      "fields": {
+        "good": { "type": "date" },
+        "bad": { "type": "date" }
+      }
+    },
+    "input": { "good": "2026-09-07", "bad": "2026-13-07" },
+    "expected": [
+      { "field": "bad", "code": "date", "message": "Invalid date: 2026-13-07" }
+    ]
+  },
+  {
+    "name": "datetime_valid_and_invalid",
+    "schema": {
+      "fields": {
+        "good": { "type": "datetime" },
+        "offset": { "type": "datetime" },
+        "bad": { "type": "datetime" }
+      }
+    },
+    "input": {
+      "good": "2026-09-07T10:30:00Z",
+      "offset": "2026-09-07T10:30:00.5+05:30",
+      "bad": "2026-09-07 10:30"
+    },
+    "expected": [
+      { "field": "bad", "code": "datetime", "message": "Invalid datetime: 2026-09-07 10:30" }
+    ]
+  },
+  {
+    "name": "numeric_string",
+    "schema": {
+      "fields": {
+        "good": { "type": "numeric" },
+        "exp": { "type": "numeric" },
+        "bad": { "type": "numeric" },
+        "nonstring": { "type": "numeric" }
+      }
+    },
+    "input": { "good": "-12.5", "exp": "1e3", "bad": "12a", "nonstring": 12 },
+    "expected": [
+      { "field": "bad", "code": "numeric", "message": "Expected numeric string, got 12a" },
+      { "field": "nonstring", "code": "type", "message": "Expected string, got integer" }
+    ]
+  },
+  {
+    "name": "not_empty",
+    "schema": {
+      "fields": {
+        "s": { "type": "not_empty" },
+        "a": { "type": "not_empty" },
+        "o": { "type": "not_empty" },
+        "n": { "type": "not_empty" }
+      }
+    },
+    "input": { "s": "", "a": [], "o": {}, "n": 5 },
+    "expected": [
+      { "field": "s", "code": "not_empty", "message": "Value must not be empty" },
+      { "field": "a", "code": "not_empty", "message": "Value must not be empty" },
+      { "field": "o", "code": "not_empty", "message": "Value must not be empty" },
+      { "field": "n", "code": "type", "message": "Expected string, array, or object, got integer" }
+    ]
+  },
+  {
+    "name": "not_empty_valid",
+    "schema": {
+      "fields": {
+        "s": { "type": "not_empty" },
+        "a": { "type": "not_empty" },
+        "o": { "type": "not_empty" }
+      }
+    },
+    "input": { "s": "x", "a": [1], "o": { "k": 1 } },
+    "expected": []
+  },
+  {
+    "name": "enum_mixed_values",
+    "schema": {
+      "fields": {
+        "v1": { "type": "enum", "values": ["a", 1, true] },
+        "v2": { "type": "enum", "values": ["a", 1, true] },
+        "bad": { "type": "enum", "values": ["a", 1, true] }
+      }
+    },
+    "input": { "v1": "a", "v2": 1, "bad": "b" },
+    "expected": [
+      { "field": "bad", "code": "enum", "message": "Value must be one of \"a\", 1, true, got \"b\"" }
+    ]
+  },
+  {
+    "name": "one_of_match_and_fail",
+    "schema": {
+      "fields": {
+        "ok_str": { "type": "one_of", "of": [ { "type": "string", "minLength": 3 }, { "type": "integer", "minValue": 10 } ] },
+        "ok_int": { "type": "one_of", "of": [ { "type": "string", "minLength": 3 }, { "type": "integer", "minValue": 10 } ] },
+        "bad": { "type": "one_of", "of": [ { "type": "string", "minLength": 3 }, { "type": "integer", "minValue": 10 } ] }
+      }
+    },
+    "input": { "ok_str": "abc", "ok_int": 15, "bad": 5 },
+    "expected": [
+      { "field": "bad", "code": "one_of", "message": "Value does not match any allowed schema" }
+    ]
+  },
+  {
+    "name": "sensitive_email_redacts_value",
+    "schema": {
+      "fields": {
+        "secret": { "type": "email", "sensitive": true }
+      }
+    },
+    "input": { "secret": "p@ssw0rd" },
+    "expected": [
+      { "field": "secret", "code": "email", "message": "Invalid email address: ***" }
+    ]
+  },
+  {
+    "name": "sensitive_choices_redacts_value",
+    "schema": {
+      "fields": {
+        "token": { "type": "string", "choices": ["a", "b"], "sensitive": true }
+      }
+    },
+    "input": { "token": "hunter2" },
+    "expected": [
+      { "field": "token", "code": "choices", "message": "Value must be one of a, b, got '***'" }
+    ]
+  },
+  {
+    "name": "sensitive_still_reports_other_fields",
+    "schema": {
+      "fields": {
+        "secret": { "type": "string", "minLength": 5, "sensitive": true }
+      }
+    },
+    "input": { "secret": "abc" },
+    "expected": [
+      { "field": "secret", "code": "min_length", "message": "String length must be at least 5, got 3" }
+    ]
+  }
+]
